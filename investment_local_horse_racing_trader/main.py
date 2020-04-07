@@ -7,11 +7,11 @@ browser = webdriver.Remote(
     desired_capabilities=DesiredCapabilities.CHROME
 )
 
-browser.get("https://www.google.co.jp")
+browser.get("https://keiba.rakuten.co.jp/")
 
 sleep(1)
 
-browser.save_screenshot("test.png")
+print(browser.title)
 
 browser.close()
 browser.quit()

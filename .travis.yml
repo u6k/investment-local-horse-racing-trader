@@ -1,0 +1,26 @@
+language: python
+cache: pip
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
+script:
+  - docker-compose build
+  - docker-compose run app pipenv run lint
+  - docker-compose run app pipenv run test
+  - docker build -t u6kapps/investment-local-horse-racing-trader -f Dockerfile.production .
+
+after_success:
+  - if [ -n "$TRAVIS_TAG" ]; then
+      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin;
+      docker tag u6kapps/investment-local-horse-racing-trader u6kapps/investment-local-horse-racing-trader:$TRAVIS_TAG;
+      docker push u6kapps/investment-local-horse-racing-trader;
+    else
+      echo skip docker push;
+    fi
+
+notifications:
+  slack:
+    secure: Nj5dl5oRnM61iSSLfM++U6+Y2m/mhonE+UCV0eHauveWi3FfyT5fTl11l8nRFTuUYRuGhpkGulxBdyOstZbtj8YAd8os7CgEpdHMp5nqq5ihdMRrA9sKoyKNMqpuZXTn+RfIP0Pbu45WIpHbuyLxNiVSLK+pG+jM+NO735zVKBmXNYbxvgf+mVH/3fEqFAOSasVWOnhw0eSj3V1ljiBGRW8yHuKlz0Gpoodzj+7e24TE/QXzYR6QQKwquc05p5ffsMJYSohkXkrQnNiVAYro3v10+XothrfX0rLBC2ltdpGRd8iJhGN+l3fJur8qyOx7k1EwJKkPPTbNqdFtzvGAuSwc5T8Az0sevQslpSSxaBTSpm51xv6CksB+Z/0bWVvT9xjmaj+ot4HLbpKyeA5XQMbyGIVCb5VQLJZcPvslRpvymvs+/mORab6ytDFuYwuQgYzYbmV95eRm3UQdZ+GPxM4G915nb/sPGPqoFyRRosjmUmslPNJp5cF7T2RMiyOK9MWCbf8Bfjp2jT7i+h8y15dbCdD+5/3ebt0LZoax7brAaKOkRoWDi8vna+9V91M9kMji+KxGJZiTmw1TS8Eq3QOZjMZOT4+sMMd7yPrcCb+MDTe5EkU9uvG6kFrqduIx6945BcbdFWYKW70L0Pge4Q3vHvbNx4Nrb/RI4Lw4g4E=

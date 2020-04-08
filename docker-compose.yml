@@ -1,25 +1,28 @@
-app:
-  build: .
-  container_name: "app"
-  volumes:
-    - ".:/var/myapp"
-  environment:
-    - "TZ=Asia/Tokyo"
-  links:
-    - selenium-hub:hub
+version: '3'
 
-chrome:
-  image: selenium/node-chrome-debug
-  container_name: "chrome"
-  ports:
-    - 5900:5900
-  volumes:
-    - /dev/shm:/dev/shm
-  links:
-    - selenium-hub:hub
+services:
+  app:
+    build: .
+    volumes:
+      - ".:/var/myapp"
+    environment:
+      - "TZ=Asia/Tokyo"
+    depends_on:
+      - "selenium-hub"
 
-selenium-hub:
-  image: selenium/hub
-  container_name: "selenium-hub"
-  ports:
-    - 4444:4444
+  chrome:
+    image: selenium/node-chrome-debug
+    ports:
+      - 15900:5900
+    volumes:
+      - /dev/shm:/dev/shm
+    depends_on:
+      - "selenium-hub"
+    environment:
+      - "HUB_HOST=selenium-hub"
+      - "HUB_PORT=4444"
+
+  selenium-hub:
+    image: selenium/hub
+    ports:
+      - 14444:4444

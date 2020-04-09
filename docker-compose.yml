@@ -7,6 +7,9 @@ services:
       - ".:/var/myapp"
     environment:
       - "TZ=Asia/Tokyo"
+      - "ODDSPARK_USER_ID=user_id"
+      - "ODDSPARK_PASSWORD=password"
+      - "ODDSPARK_PIN=pin"
     depends_on:
       - "selenium-hub"
 

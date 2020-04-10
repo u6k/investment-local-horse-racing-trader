@@ -1,4 +1,4 @@
-from logging import Formatter, getLogger, StreamHandler, INFO
+from logging import Formatter, getLogger, StreamHandler, INFO, DEBUG
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -6,13 +6,17 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
+getLogger("urllib3").setLevel(INFO)
+getLogger("selenium").setLevel(INFO)
+
+
 def get_logger():
     logger = getLogger()
-    formatter = Formatter("%(asctime)-15s - %(levelname)-8s - %(message)s")
+    formatter = Formatter("%(asctime)-15s [%(name)-10s] %(levelname)-8s - %(message)s")
     handler = StreamHandler()
-    handler.setLevel(INFO)
+    handler.setLevel(DEBUG)
     handler.setFormatter(formatter)
-    logger.setLevel(INFO)
+    logger.setLevel(DEBUG)
     logger.addHandler(handler)
 
     return logger

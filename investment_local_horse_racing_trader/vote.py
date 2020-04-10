@@ -22,11 +22,11 @@ def vote(race_id, vote_id):
 
         # 投票ページを開く
         open_vote_page(browser, vote_id)
-        #open_vote_page_dummy(browser, vote_id)
+        # open_vote_page_dummy(browser, vote_id)
 
         # 投票ページ内容をスクレイピングする
         vote_page_info = scrape_vote_page_info(browser.page_source)
-        #vote_page_info = scrape_vote_page_info_dummy(browser.page_source)
+        # vote_page_info = scrape_vote_page_info_dummy(browser.page_source)
         logger.info(f"#vote: vote_page_info={vote_page_info}")
 
         # 予測順位を取得する
@@ -176,7 +176,7 @@ def calc_vote_cost(asset, odds):
 def execute_vote(browser, horse_number, vote_cost):
     logger.info(f"#execute_vote: horse_number={horse_number}, vote_cost={vote_cost}")
 
-    browser.find_element(By.CSS_SELECTOR, f".n{pred_result[0]}").click()
+    browser.find_element(By.CSS_SELECTOR, f".n{horse_number}").click()
     browser.find_element(By.ID, "textfield11").click()
     browser.find_element(By.ID, "textfield11").clear()
     browser.find_element(By.ID, "textfield11").send_keys(vote_cost / 100)

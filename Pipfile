@@ -8,6 +8,8 @@ flake8 = "*"
 autopep8 = "*"
 nose = "*"
 selenium = "*"
+lxml = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"

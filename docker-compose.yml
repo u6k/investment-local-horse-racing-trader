@@ -6,12 +6,24 @@ services:
     volumes:
       - ".:/var/myapp"
     environment:
-      - "TZ=Asia/Tokyo"
-      - "ODDSPARK_USER_ID=user_id"
-      - "ODDSPARK_PASSWORD=password"
-      - "ODDSPARK_PIN=pin"
+      - "ODDSPARK_USER_ID=${ODDSPARK_USER_ID}"
+      - "ODDSPARK_PASSWORD=${ODDSPARK_PASSWORD}"
+      - "ODDSPARK_PIN=${ODDSPARK_PIN}"
+      - "DB_HOST=${DB_HOST}"
+      - "DB_PORT=${DB_PORT}"
+      - "DB_USERNAME=${DB_USERNAME}"
+      - "DB_PASSWORD=${DB_PASSWORD}"
+      - "DB_DATABASE=${DB_DATABASE}"
     depends_on:
       - "selenium-hub"
+      - "db"
+
+  db:
+    image: postgres:12
+    environment:
+      - "POSTGRES_USER=${DB_USERNAME}"
+      - "POSTGRES_PASSWORD=${DB_PASSWORD}"
+      - "POSTGRES_DB=${DB_DATABASE}"
 
   chrome:
     image: selenium/node-chrome-debug

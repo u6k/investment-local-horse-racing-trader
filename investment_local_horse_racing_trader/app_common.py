@@ -4,6 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+import psycopg2
+from psycopg2.extras import DictCursor
 
 
 getLogger("urllib3").setLevel(INFO)
@@ -67,3 +69,18 @@ def is_logined_oddspark(browser):
         return False
     else:
         return True
+
+
+def open_db_conn():
+    db_conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_DATABASE"),
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASSWORD")
+    )
+    db_conn.autocommit = False
+    db_conn.set_client_encoding("utf-8")
+    db_conn.cursor_factory = DictCursor
+
+    return db_conn

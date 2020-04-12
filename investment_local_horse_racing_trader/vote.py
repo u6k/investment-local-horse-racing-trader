@@ -3,6 +3,8 @@ import math
 from selenium.webdriver.common.by import By
 from lxml import html
 import requests
+from uuid import uuid4
+from datetime import datetime
 
 import app_common
 
@@ -49,6 +51,9 @@ def vote(race_id, vote_id):
             logger.info("#vote: voted")
         else:
             logger.warning("vote abstain: cost == 0")
+
+        # 投票データを記録する
+        store_vote_data(race_id, vote_id, vote_page_info, None, pred_result[0], vote_cost)
 
     finally:
         browser.close()
@@ -110,10 +115,10 @@ def scrape_vote_page_info(vote_page_html):
             denma = {}
             denma["horse_number"] = int(tr.xpath("td")[td_offset].text)
             denma["horse_name"] = tr.xpath("td")[td_offset+1].text
-            denma["favorite_order"] = tr.xpath("td")[td_offset+5].text
+            denma["favorite"] = tr.xpath("td")[td_offset+5].text
 
             try:
-                denma["favorite_order"] = int(denma["favorite_order"])
+                denma["favorite"] = int(denma["favorite"])
                 denma["odds_win"] = float(tr.xpath("td")[td_offset+6].xpath("span")[0].text)
             except ValueError:
                 denma["odds_win"] = None
@@ -183,6 +188,39 @@ def execute_vote(browser, horse_number, vote_cost):
     browser.find_element(By.ID, "set").click()
 
     browser.save_screenshot("vote.png")
+
+
+def store_vote_data(race_id, vote_id, vote_page_info, invest_param, vote_horse_number, vote_cost):
+    logger.info("#store_vote_data: start")
+
+    db_conn = app_common.open_db_conn()
+    try:
+        db_cursor = db_conn.cursor()
+        try:
+
+            create_timestamp = datetime.now()
+
+            db_cursor.execute("delete from race_denma where race_id=%s", (race_id,))
+
+            for denma in vote_page_info["denma_list"]:
+                race_denma_id = f"{race_id}_{denma['horse_number']}"
+
+                db_cursor.execute("insert into race_denma (race_denma_id, race_id, vote_id, horse_number, horse_name, favorite, odds_win, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (race_denma_id, race_id, vote_id, denma["horse_number"], denma["horse_name"], denma["favorite"], denma["odds_win"], create_timestamp))
+
+            vote_record_id = str(uuid4())
+            bet_type = "win"
+            algorithm = "dummy"
+            vote_parameter = "dummy"
+
+            db_cursor.execute("insert into vote_record(vote_record_id, race_id, vote_id, bet_type, horse_number_1, vote_cost, algorithm, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, race_id, vote_id, bet_type, vote_horse_number, vote_cost, algorithm, vote_parameter, create_timestamp))
+
+            db_conn.commit()
+
+        finally:
+            db_cursor.close()
+
+    finally:
+        db_conn.close()
 
 
 if __name__ == "__main__":

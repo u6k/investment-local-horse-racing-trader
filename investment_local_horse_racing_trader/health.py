@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
 
-import app_common
+from investment_local_horse_racing_trader import app_common
 
 
 logger = app_common.get_logger()
@@ -16,6 +16,8 @@ def health():
         browser.find_element(By.CSS_SELECTOR, "body")
 
         logger.info(f"#health: title={browser.title}")
+
+        return browser.title
 
     finally:
         browser.close()

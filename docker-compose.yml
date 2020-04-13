@@ -15,6 +15,7 @@ services:
       - "DB_PASSWORD=${DB_PASSWORD}"
       - "DB_DATABASE=${DB_DATABASE}"
       - "TZ=Asia/Tokyo"
+      - "CELERY_REDIS_URL=redis://redis:6379/0"
     depends_on:
       - "selenium-hub"
       - "db"
@@ -46,3 +47,13 @@ services:
 
   redis:
     image: redis
+
+  flower:
+    image: mher/flower
+    environment:
+      - "CELERY_BROKER_URL=redis://redis:6379/0"
+      - "TZ=Asia/Tokyo"
+    ports:
+      - 15555:5555
+    depends_on:
+      - "redis"

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [#8215: タイムゾーンを日本時間帯に設定する](https://redmine.u6k.me/issues/8215)
 
+### Added
+- [#8214: 投票の予約実行を外部から受け付けられるようにする](https://redmine.u6k.me/issues/8214)
+
 ## [0.4.0] - 2020-04-13
 ### Added
 - [#8211: デモ投票時のデータをDBに記録する](https://redmine.u6k.me/issues/8211)

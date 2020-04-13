@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [#8212: ".env"が混入してしまっている](https://redmine.u6k.me/issues/8212)
 
+### Changed
+- [#8215: タイムゾーンを日本時間帯に設定する](https://redmine.u6k.me/issues/8215)
+
 ## [0.4.0] - 2020-04-13
 ### Added
 - [#8211: デモ投票時のデータをDBに記録する](https://redmine.u6k.me/issues/8211)

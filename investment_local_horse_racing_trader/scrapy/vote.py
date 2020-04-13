@@ -7,7 +7,7 @@ from uuid import uuid4
 from datetime import datetime
 from operator import itemgetter
 
-from investment_local_horse_racing_trader import app_common
+from investment_local_horse_racing_trader.scrapy import app_common
 
 
 logger = app_common.get_logger()
@@ -243,13 +243,3 @@ def store_vote_data(vote_result):
 
     finally:
         db_conn.close()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("raceid")
-    parser.add_argument("voteid")
-
-    args = parser.parse_args()
-
-    vote(args.raceid, args.voteid)

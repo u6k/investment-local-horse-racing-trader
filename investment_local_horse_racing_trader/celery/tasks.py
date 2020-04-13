@@ -1,8 +1,8 @@
 import os
 from celery import Celery
 
-from investment_local_horse_racing_trader.health import health
-from investment_local_horse_racing_trader.vote import vote
+from investment_local_horse_racing_trader.scrapy.health import health
+from investment_local_horse_racing_trader.scrapy.vote import vote
 
 
 app = Celery("tasks")

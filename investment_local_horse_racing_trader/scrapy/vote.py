@@ -1,4 +1,3 @@
-import argparse
 import math
 from selenium.webdriver.common.by import By
 from lxml import html

@@ -10,4 +10,4 @@ COPY . /var/myapp
 WORKDIR /var/myapp
 RUN pipenv install
 
-CMD ["pipenv", "run", "web-auto"]
+CMD ["pipenv", "run", "celery"]

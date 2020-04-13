@@ -1,12 +1,12 @@
-import argparse
 import math
 from selenium.webdriver.common.by import By
 from lxml import html
 import requests
 from uuid import uuid4
 from datetime import datetime
+from operator import itemgetter
 
-import app_common
+from investment_local_horse_racing_trader.scrapy import app_common
 
 
 logger = app_common.get_logger()
@@ -42,7 +42,10 @@ def vote(race_id, vote_id):
         if target_denma["odds_win"] is None:
             raise RuntimeError("odds_win is None")
 
-        vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"])
+        invest_parameter = get_invest_parameter()
+        logger.info(f"#vote: invest_parameter={invest_parameter}")
+
+        vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
         logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
 
         # 投票する
@@ -53,7 +56,18 @@ def vote(race_id, vote_id):
             logger.warning("vote abstain: cost == 0")
 
         # 投票データを記録する
-        store_vote_data(race_id, vote_id, vote_page_info, None, pred_result[0], vote_cost)
+        vote_result = {
+            "race_id": race_id,
+            "vote_id": vote_id,
+            "vote_page_info": vote_page_info,
+            "invest_parameter": invest_parameter,
+            "vote_horse_number": pred_result[0],
+            "vote_cost": vote_cost
+        }
+
+        store_vote_data(vote_result)
+
+        return vote_result
 
     finally:
         browser.close()
@@ -143,34 +157,43 @@ def predict_result(race_id, denma_list):
     if resp.status_code != 200:
         raise RuntimeError("Predict API fail")
 
-    pred_result = [1, 2, 3, 4, 5]
+    sorted_denma_list = sorted(denma_list, key=itemgetter("favorite"))
+    pred_result = [d["horse_number"] for d in sorted_denma_list]
     logger.debug(f"#predict_result: pred_result={pred_result}")
 
     return pred_result
 
 
-def calc_vote_cost(asset, odds):
-    logger.debug(f"#calc_vote_cost: start: asset={asset}, odds={odds}")
+def get_invest_parameter():
+    logger.debug(f"#get_invest_parameter: start")
 
     # TODO
     resp = requests.get("http://ipinfo.io")
 
     if resp.status_code != 200:
-        raise RuntimeError("Predict API fail")
+        raise RuntimeError("Get invest_params API fail")
 
-    invest_param = {}
-    invest_param["hit_rate"] = 0.1677
-    invest_param["kelly_coefficient"] = 0.1524
-    logger.debug(f"#calc_vote_cost: invest_param={invest_param}")
+    p = {"algorithm": "dummy", "parameter": {}}
+    p["parameter"]["hit_rate"] = 0.1677
+    p["parameter"]["kelly_coefficient"] = 0.1524
+
+    return p
+
+
+def calc_vote_cost(asset, odds, invest_parameter):
+    logger.debug(f"#calc_vote_cost: start: asset={asset}, odds={odds}, invest_parameter={invest_parameter}")
+
+    hit_rate = invest_parameter["parameter"]["hit_rate"]
+    kelly_coefficient = invest_parameter["parameter"]["kelly_coefficient"]
 
     if odds > 1.0:
-        kelly = (invest_param["hit_rate"] * odds - 1.0) / (odds - 1.0)
+        kelly = (hit_rate * odds - 1.0) / (odds - 1.0)
     else:
         kelly = 0.0
     logger.debug(f"#calc_vote_cost: kelly={kelly}")
 
     if kelly > 0.0:
-        vote_cost = math.floor(asset * kelly * invest_param["kelly_coefficient"] / 100.0) * 100
+        vote_cost = math.floor(asset * kelly * kelly_coefficient / 100.0) * 100
     else:
         vote_cost = 0
     logger.debug(f"#calc_vote_cost: vote_cost={vote_cost}")
@@ -190,7 +213,7 @@ def execute_vote(browser, horse_number, vote_cost):
     browser.save_screenshot("vote.png")
 
 
-def store_vote_data(race_id, vote_id, vote_page_info, invest_param, vote_horse_number, vote_cost):
+def store_vote_data(vote_result):
     logger.info("#store_vote_data: start")
 
     db_conn = app_common.open_db_conn()
@@ -200,19 +223,17 @@ def store_vote_data(race_id, vote_id, vote_page_info, invest_param, vote_horse_n
 
             create_timestamp = datetime.now()
 
-            db_cursor.execute("delete from race_denma where race_id=%s", (race_id,))
+            db_cursor.execute("delete from race_denma where race_id=%s", (vote_result["race_id"],))
 
-            for denma in vote_page_info["denma_list"]:
-                race_denma_id = f"{race_id}_{denma['horse_number']}"
+            for denma in vote_result["vote_page_info"]["denma_list"]:
+                race_denma_id = f"{vote_result['race_id']}_{denma['horse_number']}"
 
-                db_cursor.execute("insert into race_denma (race_denma_id, race_id, vote_id, horse_number, horse_name, favorite, odds_win, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (race_denma_id, race_id, vote_id, denma["horse_number"], denma["horse_name"], denma["favorite"], denma["odds_win"], create_timestamp))
+                db_cursor.execute("insert into race_denma (race_denma_id, race_id, vote_id, horse_number, horse_name, favorite, odds_win, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (race_denma_id, vote_result["race_id"], vote_result["vote_id"], denma["horse_number"], denma["horse_name"], denma["favorite"], denma["odds_win"], create_timestamp))
 
             vote_record_id = str(uuid4())
             bet_type = "win"
-            algorithm = "dummy"
-            vote_parameter = "dummy"
 
-            db_cursor.execute("insert into vote_record(vote_record_id, race_id, vote_id, bet_type, horse_number_1, vote_cost, algorithm, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, race_id, vote_id, bet_type, vote_horse_number, vote_cost, algorithm, vote_parameter, create_timestamp))
+            db_cursor.execute("insert into vote_record(vote_record_id, race_id, vote_id, bet_type, horse_number_1, vote_cost, algorithm, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, vote_result["race_id"], vote_result["vote_id"], bet_type, vote_result["vote_horse_number"], vote_result["vote_cost"], vote_result["invest_parameter"]["algorithm"], vote_result["invest_parameter"]["parameter"].__str__(), create_timestamp))
 
             db_conn.commit()
 
@@ -221,13 +242,3 @@ def store_vote_data(race_id, vote_id, vote_page_info, invest_param, vote_horse_n
 
     finally:
         db_conn.close()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("raceid")
-    parser.add_argument("voteid")
-
-    args = parser.parse_args()
-
-    vote(args.raceid, args.voteid)

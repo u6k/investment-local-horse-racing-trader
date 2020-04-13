@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
 
-import app_common
+from investment_local_horse_racing_trader.scrapy import app_common
 
 
 logger = app_common.get_logger()
@@ -17,10 +17,8 @@ def health():
 
         logger.info(f"#health: title={browser.title}")
 
+        return browser.title
+
     finally:
         browser.close()
         browser.quit()
-
-
-if __name__ == "__main__":
-    health()

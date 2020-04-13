@@ -14,6 +14,7 @@ services:
       - "DB_USERNAME=${DB_USERNAME}"
       - "DB_PASSWORD=${DB_PASSWORD}"
       - "DB_DATABASE=${DB_DATABASE}"
+      - "TZ=Asia/Tokyo"
     depends_on:
       - "selenium-hub"
       - "db"

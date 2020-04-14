@@ -11,6 +11,7 @@ app.conf.update(
     timezone=os.getenv("TZ"),
     broker_url=os.getenv("CELERY_REDIS_URL"),
     result_backend=os.getenv("CELERY_REDIS_URL"),
+    worker_concurrency=1,
 
     # beat_schedule={
     #     "hello-every-1-minute": {

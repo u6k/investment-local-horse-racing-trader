@@ -16,6 +16,7 @@ services:
       - "DB_DATABASE=${DB_DATABASE}"
       - "TZ=Asia/Tokyo"
       - "CELERY_REDIS_URL=redis://redis:6379/0"
+      - "SLACK_WEBHOOK=${SLACK_WEBHOOK}"
     depends_on:
       - "selenium-hub"
       - "db"

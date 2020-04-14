@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery_slack import Slackify
 
 from investment_local_horse_racing_trader.scrapy.health import health
 from investment_local_horse_racing_trader.scrapy.vote import vote
@@ -20,6 +21,10 @@ app.conf.update(
     #     }
     # }
 )
+
+
+if os.getenv("SLACK_WEBHOOK"):
+    slack_app = Slackify(app, os.getenv("SLACK_WEBHOOK"))
 
 
 @app.task

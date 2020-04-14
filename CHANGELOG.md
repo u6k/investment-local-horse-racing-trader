@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [#8222: ジョブ同時実行量を1に制限する](https://redmine.u6k.me/issues/8222)
 
+### Added
+- [#8218: ジョブ実行結果をSlackで通知する](https://redmine.u6k.me/issues/8218)
+
 ## [0.5.0] - 2020-04-14
 ### Fixed
 - [#8212: ".env"が混入してしまっている](https://redmine.u6k.me/issues/8212)

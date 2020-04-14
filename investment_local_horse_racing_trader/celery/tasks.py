@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery_slack import Slackify
 
 from investment_local_horse_racing_trader.scrapy.health import health
 from investment_local_horse_racing_trader.scrapy.vote import vote
@@ -11,6 +12,7 @@ app.conf.update(
     timezone=os.getenv("TZ"),
     broker_url=os.getenv("CELERY_REDIS_URL"),
     result_backend=os.getenv("CELERY_REDIS_URL"),
+    worker_concurrency=1,
 
     # beat_schedule={
     #     "hello-every-1-minute": {
@@ -19,6 +21,10 @@ app.conf.update(
     #     }
     # }
 )
+
+
+if os.getenv("SLACK_WEBHOOK"):
+    slack_app = Slackify(app, os.getenv("SLACK_WEBHOOK"))
 
 
 @app.task

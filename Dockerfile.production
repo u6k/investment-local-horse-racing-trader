@@ -10,4 +10,7 @@ COPY . /var/myapp
 WORKDIR /var/myapp
 RUN pipenv install
 
-CMD ["pipenv", "run", "celery"]
+ENV FLASK_APP investment_local_horse_racing_trader/flask/main.py
+EXPOSE 5000
+
+CMD ["pipenv", "run", "web"]

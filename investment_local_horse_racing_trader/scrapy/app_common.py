@@ -12,18 +12,6 @@ getLogger("urllib3").setLevel(INFO)
 getLogger("selenium").setLevel(INFO)
 
 
-def get_logger():
-    logger = getLogger()
-    formatter = Formatter("%(asctime)-15s [%(name)-10s] %(levelname)-8s - %(message)s")
-    handler = StreamHandler()
-    handler.setLevel(DEBUG)
-    handler.setFormatter(formatter)
-    logger.setLevel(DEBUG)
-    logger.addHandler(handler)
-
-    return logger
-
-
 def open_browser():
     options = Options()
     options.add_argument("--disable-extensions")

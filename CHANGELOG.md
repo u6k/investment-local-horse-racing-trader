@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0]
+### Changed
+- [#8265: Flaskアプリに変更して、ジョブ登録はFlaskで定義したWebAPIで受け付ける](https://redmine.u6k.me/issues/8265)
+- [#8339: 投票ページを開かずに、トレード処理を仮実行する](https://redmine.u6k.me/issues/8339)
+
 ## [0.6.0] - 2020-04-14
 ### Changed
 - [#8222: ジョブ同時実行量を1に制限する](https://redmine.u6k.me/issues/8222)

@@ -1,28 +1,82 @@
 import math
+import os
+from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from lxml import html
 import requests
 from uuid import uuid4
 from datetime import datetime
 from operator import itemgetter
 
-from investment_local_horse_racing_trader.scrapy import app_common
+
+from investment_local_horse_racing_trader.app_logging import get_logger
+from investment_local_horse_racing_trader import flask
 
 
-logger = app_common.get_logger()
+logger = get_logger(__name__)
 
 
-def vote(race_id, vote_id):
-    logger.info(f"#vote: start: race_id={race_id}, vote_id={vote_id}")
+def open_browser():
+    options = Options()
+    options.add_argument("--disable-extensions")
+    options.add_argument("--start-maximized")
 
-    browser = app_common.open_browser()
+    browser = webdriver.Remote(
+        command_executor="http://selenium-hub:4444/wd/hub",
+        desired_capabilities=DesiredCapabilities.CHROME,
+        options=options,
+    )
+    browser.implicitly_wait(10)
+
+    return browser
+
+
+def login_oddspark(browser):
+    user_id = os.getenv("ODDSPARK_USER_ID")
+    password = os.getenv("ODDSPARK_PASSWORD")
+    pin = os.getenv("ODDSPARK_PIN")
+
+    browser.get("https://www.oddspark.com/keiba/")
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser.find_element(By.NAME, "SSO_ACCOUNTID").click()
+    browser.find_element(By.NAME, "SSO_ACCOUNTID").send_keys(user_id)
+    browser.find_element(By.NAME, "SSO_PASSWORD").click()
+    browser.find_element(By.NAME, "SSO_PASSWORD").send_keys(password)
+    browser.find_element(By.CSS_SELECTOR, "form > a").click()
+
+    browser.find_element(By.NAME, "INPUT_PIN").click()
+    browser.find_element(By.NAME, "INPUT_PIN").send_keys(pin)
+    browser.find_element(By.NAME, "送信").click()
+
+    browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+
+
+def is_logined_oddspark(browser):
+    browser.get("https://www.oddspark.com/user/my/Index.do")
+    browser.find_element(By.CSS_SELECTOR, "body")
+
+    title = browser.title
+
+    if title.startswith("ログイン"):
+        return False
+    else:
+        return True
+
+
+def vote(race_id):
+    logger.info(f"#vote: start: race_id={race_id}")
+
+    browser = open_browser()
     try:
 
         # ログイン
-        if not app_common.is_logined_oddspark(browser):
-            app_common.login_oddspark(browser)
+        if not is_logined_oddspark(browser):
+            login_oddspark(browser)
 
         # 投票ページを開く
+        vote_id = ""  # TODO
         open_vote_page(browser, vote_id)
         # open_vote_page_dummy(browser, vote_id)
 
@@ -216,7 +270,7 @@ def execute_vote(browser, horse_number, vote_cost):
 def store_vote_data(vote_result):
     logger.info("#store_vote_data: start")
 
-    db_conn = app_common.open_db_conn()
+    db_conn = flask.get_db()
     try:
         db_cursor = db_conn.cursor()
         try:

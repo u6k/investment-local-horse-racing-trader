@@ -51,7 +51,7 @@ def health():
     return result
 
 
-@app.route("/api/vote")
+@app.route("/api/vote", methods=["POST"])
 def vote():
     logger.info("#vote: start")
 

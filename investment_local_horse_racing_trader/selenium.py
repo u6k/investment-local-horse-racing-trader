@@ -12,6 +12,7 @@ from operator import itemgetter
 
 
 from investment_local_horse_racing_trader.app_logging import get_logger
+from investment_local_horse_racing_trader import flask
 
 
 logger = get_logger(__name__)
@@ -64,17 +65,18 @@ def is_logined_oddspark(browser):
         return True
 
 
-def vote(race_id, vote_id):
-    logger.info(f"#vote: start: race_id={race_id}, vote_id={vote_id}")
+def vote(race_id):
+    logger.info(f"#vote: start: race_id={race_id}")
 
-    browser = app_common.open_browser()
+    browser = open_browser()
     try:
 
         # ログイン
-        if not app_common.is_logined_oddspark(browser):
-            app_common.login_oddspark(browser)
+        if not is_logined_oddspark(browser):
+            login_oddspark(browser)
 
         # 投票ページを開く
+        vote_id = ""  # TODO
         open_vote_page(browser, vote_id)
         # open_vote_page_dummy(browser, vote_id)
 
@@ -268,7 +270,7 @@ def execute_vote(browser, horse_number, vote_cost):
 def store_vote_data(vote_result):
     logger.info("#store_vote_data: start")
 
-    db_conn = app_common.open_db_conn()
+    db_conn = flask.get_db()
     try:
         db_cursor = db_conn.cursor()
         try:

@@ -39,7 +39,7 @@ def health():
     # Check database
     logger.debug("#health: check database")
 
-    db_cursor = _get_db().cursor()
+    db_cursor = get_db().cursor()
     try:
 
         db_cursor.execute("select 1")
@@ -55,17 +55,17 @@ def health():
 def vote():
     logger.info("#vote: start")
 
-    args = requests.get_json()
+    args = request.get_json()
     logger.debug(f"#vote: args={args}")
 
     race_id = args.get("race_id", None)
 
-    _vote(race_id)
+    selenium.vote(race_id)
 
     return "ok"
 
 
-def _get_db():
+def get_db():
     if "db" not in g:
         g.db = psycopg2.connect(
             host=os.getenv("DB_HOST"),

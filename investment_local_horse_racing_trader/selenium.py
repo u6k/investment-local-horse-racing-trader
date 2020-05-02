@@ -130,6 +130,21 @@ def vote(race_id):
         browser.quit()
 
 
+def vote_close(race_id):
+    vote_record = find_vote_record(race_id)
+
+    race_result = find_race_result(race_id, vote_record["horse_number"])
+
+    if race_result["result"] == 1:
+        vote_return = vote_record["vote_cost"] * race_result["result_odds"]
+    else:
+        vote_return = 0
+
+    store_vote_result(vote_record["vote_record_id"], race_result["result"], race_result["result_odds"], vote_return)
+
+    return vote_return
+
+
 def open_vote_page(browser, vote_id):
     logger.debug(f"#open_vote_page: start: vote_id={vote_id}")
 
@@ -252,6 +267,8 @@ def store_vote_data(predict_result):
 
         db_conn.commit()
 
+        return vote_record_id
+
     finally:
         db_cursor.close()
 
@@ -264,13 +281,73 @@ def get_last_asset():
 
         db_cursor.execute("select sum(vote_cost) from vote_record")
         (total_vote_cost,) = db_cursor.fetchone()
-        logger.debug("#get_last_asset: total_vote_cost={total_vote_cost}")
 
         db_cursor.execute("select sum(vote_return) from vote_record")
         (total_vote_return,) = db_cursor.fetchone()
-        logger.debug("#get_last_asset: total_vote_return={total_vote_return}")
 
-        return total_vote_return - total_vote_cost
+        last_asset = total_vote_return - total_vote_cost
+        logger.debug(f"#get_last_asset: total_vote_cost={total_vote_cost}, total_vote_return={total_vote_return}, last_asset={last_asset}")
+
+        return last_asset
+
+    finally:
+        db_cursor.close()
+
+
+def find_vote_record(race_id):
+    logger.info(f"#find_vote_record: start: race_id={race_id}")
+
+    db_cursor = flask.get_db().cursor()
+    try:
+
+        db_cursor.execute("select vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost from vote_record where race_id = %s", (race_id,))
+        (vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost) = db_cursor.fetchone()
+        logger.debug(f"#find_vote_record: vote_record_id={vote_record_id}, race_id={race_id}, bet_type={bet_type}, horse_number={horse_number_1}, odds={odds}, vote_cost={vote_cost}")
+
+        return {"vote_record_id": vote_record_id, "race_id": race_id, "bet_type": bet_type, "horse_number": horse_number_1, "odds": odds, "vote_cost": vote_cost}
+
+    finally:
+        db_cursor.close()
+
+
+def find_race_result(race_id, horse_number):
+    logger.info(f"#find_race_result: start: race_id={race_id}, horse_number={horse_number}")
+
+    db_cursor = flask.get_crawler_db().cursor()
+    try:
+
+        db_cursor.execute("""
+            select
+                result,
+                odds_win
+            from
+                race_result as r join odds_win as o on
+                    r.race_id = o.race_id
+                    and r.horse_number = o.horse_number
+            where
+                r.race_id = %s
+                and r.horse_number = %s""", (race_id, horse_number))
+
+        (result, odds_win) = db_cursor.fetchone()
+
+        return {"result": result, "result_odds": odds_win}
+
+    finally:
+        db_cursor.close()
+
+
+def store_vote_result(vote_record_id, result, result_odds, vote_return):
+    logger.info(f"#store_vote_result: start: vote_record_id={vote_record_id}, result={result}, result_odds={result_odds}, vote_return={vote_return}")
+
+    db_conn = flask.get_db()
+    db_cursor = db_conn.cursor()
+    try:
+
+        update_timestamp = datetime.now()
+
+        db_cursor.execute("update vote_record set result=%s, result_odds=%s, vote_return=%s, update_timestamp=%s where vote_record_id=%s", (result, result_odds, vote_return, update_timestamp, vote_record_id))
+
+        db_conn.commit()
 
     finally:
         db_cursor.close()

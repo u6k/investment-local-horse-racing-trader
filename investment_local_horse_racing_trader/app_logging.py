@@ -37,6 +37,9 @@ logging.config.dictConfig({
 
 warnings.simplefilter("ignore")
 
+logging.getLogger("urllib3").setLevel(logging.INFO)
+logging.getLogger("selenium").setLevel(logging.INFO)
+
 
 def get_logger(name):
     return logging.getLogger(name)

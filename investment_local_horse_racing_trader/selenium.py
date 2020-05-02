@@ -1,4 +1,3 @@
-import math
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -6,9 +5,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from lxml import html
 import requests
+from requests.auth import HTTPBasicAuth
 from uuid import uuid4
 from datetime import datetime
-from operator import itemgetter
+import json
 
 
 from investment_local_horse_racing_trader.app_logging import get_logger
@@ -70,62 +70,79 @@ def vote(race_id):
 
     browser = open_browser()
     try:
+        # 予測する
+        last_asset = get_last_asset()
+        predict_result = predict(race_id, last_asset)
+        store_vote_data(predict_result)
 
         # ログイン
-        if not is_logined_oddspark(browser):
-            login_oddspark(browser)
+        # if not is_logined_oddspark(browser):
+        #    login_oddspark(browser)
 
         # 投票ページを開く
-        vote_id = ""  # TODO
-        open_vote_page(browser, vote_id)
-        # open_vote_page_dummy(browser, vote_id)
+        # vote_id = ""  # TODO
+        # open_vote_page(browser, vote_id)
 
         # 投票ページ内容をスクレイピングする
-        vote_page_info = scrape_vote_page_info(browser.page_source)
-        # vote_page_info = scrape_vote_page_info_dummy(browser.page_source)
-        logger.info(f"#vote: vote_page_info={vote_page_info}")
+        # vote_page_info = scrape_vote_page_info(browser.page_source)
+        # logger.info(f"#vote: vote_page_info={vote_page_info}")
 
         # 予測順位を取得する
-        pred_result = predict_result(race_id, vote_page_info["denma_list"])
-        logger.info(f"#vote: pred result={pred_result}")
+        # pred_result = predict_result(race_id, vote_page_info["denma_list"])
+        # logger.info(f"#vote: pred result={pred_result}")
 
         # 投資パラメータを取得し、投資サイズを決定する
-        target_denma = vote_page_info["denma_list"][pred_result[0] - 1]
-        logger.info(f"#vote: target denma={target_denma}")
+        # target_denma = vote_page_info["denma_list"][pred_result[0] - 1]
+        # logger.info(f"#vote: target denma={target_denma}")
 
-        if target_denma["odds_win"] is None:
-            raise RuntimeError("odds_win is None")
+        # if target_denma["odds_win"] is None:
+        #    raise RuntimeError("odds_win is None")
 
-        invest_parameter = get_invest_parameter()
-        logger.info(f"#vote: invest_parameter={invest_parameter}")
+        # invest_parameter = get_invest_parameter()
+        # logger.info(f"#vote: invest_parameter={invest_parameter}")
 
-        vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
-        logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
+        # vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
+        # logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
 
         # 投票する
-        if vote_cost > 0:
-            execute_vote(browser, pred_result[0], vote_cost)
-            logger.info("#vote: voted")
-        else:
-            logger.warning("vote abstain: cost == 0")
+        # if vote_cost > 0:
+        #    execute_vote(browser, pred_result[0], vote_cost)
+        #    logger.info("#vote: voted")
+        # else:
+        #    logger.warning("vote abstain: cost == 0")
 
         # 投票データを記録する
-        vote_result = {
-            "race_id": race_id,
-            "vote_id": vote_id,
-            "vote_page_info": vote_page_info,
-            "invest_parameter": invest_parameter,
-            "vote_horse_number": pred_result[0],
-            "vote_cost": vote_cost
-        }
+        # vote_result = {
+        #    "race_id": race_id,
+        #    "vote_id": vote_id,
+        #    "vote_page_info": vote_page_info,
+        #    "invest_parameter": invest_parameter,
+        #    "vote_horse_number": pred_result[0],
+        #    "vote_cost": vote_cost
+        # }
 
-        store_vote_data(vote_result)
+        # store_vote_data(vote_result)
 
-        return vote_result
+        # return vote_result
 
     finally:
         browser.close()
         browser.quit()
+
+
+def vote_close(race_id):
+    vote_record = find_vote_record(race_id)
+
+    race_result = find_race_result(race_id, vote_record["horse_number"])
+
+    if race_result["result"] == 1:
+        vote_return = vote_record["vote_cost"] * race_result["result_odds"]
+    else:
+        vote_return = 0
+
+    store_vote_result(vote_record["vote_record_id"], race_result["result"], race_result["result_odds"], vote_return)
+
+    return vote_return
 
 
 def open_vote_page(browser, vote_id):
@@ -202,57 +219,24 @@ def scrape_vote_page_info_dummy(vote_page_html):
         return scrape_vote_page_info(f.read())
 
 
-def predict_result(race_id, denma_list):
-    logger.debug(f"#predict_result: start: race_id={race_id}")
+def predict(race_id, asset):
+    logger.info(f"#predict: start: race_id={race_id}, asset={asset}")
 
-    # TODO
-    resp = requests.get("http://ipinfo.io")
+    url = os.getenv("API_PREDICT_URL")
+    headers = {
+        "Content-Type": "application/json",
+    }
+    auth = HTTPBasicAuth(os.getenv("API_PREDICT_AUTH_USER"), os.getenv("API_PREDICT_AUTH_PASSWORD"))
+    params = json.dumps({
+        "race_id": race_id,
+        "asset": asset,
+    })
+    logger.debug(f"#predict: url={url}, params={params}")
 
-    if resp.status_code != 200:
-        raise RuntimeError("Predict API fail")
+    resp = requests.post(url=url, headers=headers, auth=auth, data=params)
+    logger.debug(f"#predict: status_code={resp.status_code}, body={resp.text}")
 
-    sorted_denma_list = sorted(denma_list, key=itemgetter("favorite"))
-    pred_result = [d["horse_number"] for d in sorted_denma_list]
-    logger.debug(f"#predict_result: pred_result={pred_result}")
-
-    return pred_result
-
-
-def get_invest_parameter():
-    logger.debug(f"#get_invest_parameter: start")
-
-    # TODO
-    resp = requests.get("http://ipinfo.io")
-
-    if resp.status_code != 200:
-        raise RuntimeError("Get invest_params API fail")
-
-    p = {"algorithm": "dummy", "parameter": {}}
-    p["parameter"]["hit_rate"] = 0.1677
-    p["parameter"]["kelly_coefficient"] = 0.1524
-
-    return p
-
-
-def calc_vote_cost(asset, odds, invest_parameter):
-    logger.debug(f"#calc_vote_cost: start: asset={asset}, odds={odds}, invest_parameter={invest_parameter}")
-
-    hit_rate = invest_parameter["parameter"]["hit_rate"]
-    kelly_coefficient = invest_parameter["parameter"]["kelly_coefficient"]
-
-    if odds > 1.0:
-        kelly = (hit_rate * odds - 1.0) / (odds - 1.0)
-    else:
-        kelly = 0.0
-    logger.debug(f"#calc_vote_cost: kelly={kelly}")
-
-    if kelly > 0.0:
-        vote_cost = math.floor(asset * kelly * kelly_coefficient / 100.0) * 100
-    else:
-        vote_cost = 0
-    logger.debug(f"#calc_vote_cost: vote_cost={vote_cost}")
-
-    return vote_cost
+    return resp.json()
 
 
 def execute_vote(browser, horse_number, vote_cost):
@@ -267,32 +251,103 @@ def execute_vote(browser, horse_number, vote_cost):
     browser.save_screenshot("vote.png")
 
 
-def store_vote_data(vote_result):
-    logger.info("#store_vote_data: start")
+def store_vote_data(predict_result):
+    logger.info(f"#store_vote_data: start: predict_result={predict_result}")
 
     db_conn = flask.get_db()
+    db_cursor = db_conn.cursor()
     try:
-        db_cursor = db_conn.cursor()
-        try:
 
-            create_timestamp = datetime.now()
+        create_timestamp = datetime.now()
 
-            db_cursor.execute("delete from race_denma where race_id=%s", (vote_result["race_id"],))
+        vote_record_id = str(uuid4())
+        bet_type = "win"
 
-            for denma in vote_result["vote_page_info"]["denma_list"]:
-                race_denma_id = f"{vote_result['race_id']}_{denma['horse_number']}"
+        db_cursor.execute("insert into vote_record(vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, predict_result["race_id"], bet_type, predict_result["horse_number"], predict_result["odds_win"], predict_result["vote_cost"], predict_result["parameters"].__str__(), create_timestamp))
 
-                db_cursor.execute("insert into race_denma (race_denma_id, race_id, vote_id, horse_number, horse_name, favorite, odds_win, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (race_denma_id, vote_result["race_id"], vote_result["vote_id"], denma["horse_number"], denma["horse_name"], denma["favorite"], denma["odds_win"], create_timestamp))
+        db_conn.commit()
 
-            vote_record_id = str(uuid4())
-            bet_type = "win"
-
-            db_cursor.execute("insert into vote_record(vote_record_id, race_id, vote_id, bet_type, horse_number_1, vote_cost, algorithm, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, vote_result["race_id"], vote_result["vote_id"], bet_type, vote_result["vote_horse_number"], vote_result["vote_cost"], vote_result["invest_parameter"]["algorithm"], vote_result["invest_parameter"]["parameter"].__str__(), create_timestamp))
-
-            db_conn.commit()
-
-        finally:
-            db_cursor.close()
+        return vote_record_id
 
     finally:
-        db_conn.close()
+        db_cursor.close()
+
+
+def get_last_asset():
+    logger.info("#get_last_asset: start")
+
+    db_cursor = flask.get_db().cursor()
+    try:
+
+        db_cursor.execute("select sum(vote_cost) from vote_record")
+        (total_vote_cost,) = db_cursor.fetchone()
+
+        db_cursor.execute("select sum(vote_return) from vote_record")
+        (total_vote_return,) = db_cursor.fetchone()
+
+        last_asset = total_vote_return - total_vote_cost
+        logger.debug(f"#get_last_asset: total_vote_cost={total_vote_cost}, total_vote_return={total_vote_return}, last_asset={last_asset}")
+
+        return last_asset
+
+    finally:
+        db_cursor.close()
+
+
+def find_vote_record(race_id):
+    logger.info(f"#find_vote_record: start: race_id={race_id}")
+
+    db_cursor = flask.get_db().cursor()
+    try:
+
+        db_cursor.execute("select vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost from vote_record where race_id = %s", (race_id,))
+        (vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost) = db_cursor.fetchone()
+        logger.debug(f"#find_vote_record: vote_record_id={vote_record_id}, race_id={race_id}, bet_type={bet_type}, horse_number={horse_number_1}, odds={odds}, vote_cost={vote_cost}")
+
+        return {"vote_record_id": vote_record_id, "race_id": race_id, "bet_type": bet_type, "horse_number": horse_number_1, "odds": odds, "vote_cost": vote_cost}
+
+    finally:
+        db_cursor.close()
+
+
+def find_race_result(race_id, horse_number):
+    logger.info(f"#find_race_result: start: race_id={race_id}, horse_number={horse_number}")
+
+    db_cursor = flask.get_crawler_db().cursor()
+    try:
+
+        db_cursor.execute("""
+            select
+                result,
+                odds_win
+            from
+                race_result as r join odds_win as o on
+                    r.race_id = o.race_id
+                    and r.horse_number = o.horse_number
+            where
+                r.race_id = %s
+                and r.horse_number = %s""", (race_id, horse_number))
+
+        (result, odds_win) = db_cursor.fetchone()
+
+        return {"result": result, "result_odds": odds_win}
+
+    finally:
+        db_cursor.close()
+
+
+def store_vote_result(vote_record_id, result, result_odds, vote_return):
+    logger.info(f"#store_vote_result: start: vote_record_id={vote_record_id}, result={result}, result_odds={result_odds}, vote_return={vote_return}")
+
+    db_conn = flask.get_db()
+    db_cursor = db_conn.cursor()
+    try:
+
+        update_timestamp = datetime.now()
+
+        db_cursor.execute("update vote_record set result=%s, result_odds=%s, vote_return=%s, update_timestamp=%s where vote_record_id=%s", (result, result_odds, vote_return, update_timestamp, vote_record_id))
+
+        db_conn.commit()
+
+    finally:
+        db_cursor.close()

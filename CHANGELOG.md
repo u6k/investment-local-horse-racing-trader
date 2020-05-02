@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - [#8265: Flaskアプリに変更して、ジョブ登録はFlaskで定義したWebAPIで受け付ける](https://redmine.u6k.me/issues/8265)
+- [#8339: 投票ページを開かずに、トレード処理を仮実行する](https://redmine.u6k.me/issues/8339)
 
 ## [0.6.0] - 2020-04-14
 ### Changed

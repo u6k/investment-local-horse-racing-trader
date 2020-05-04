@@ -68,66 +68,66 @@ def is_logined_oddspark(browser):
 def vote(race_id):
     logger.info(f"#vote: start: race_id={race_id}")
 
-    browser = open_browser()
-    try:
-        # 予測する
-        last_asset = get_last_asset()
-        predict_result = predict(race_id, last_asset)
-        store_vote_data(predict_result)
+    # 予測する
+    last_asset = get_last_asset()
+    predict_result = predict(race_id, last_asset)
+    store_vote_data(predict_result)
 
-        # ログイン
-        # if not is_logined_oddspark(browser):
-        #    login_oddspark(browser)
+    # browser = open_browser()
+    # try:
+    # ログイン
+    # if not is_logined_oddspark(browser):
+    #    login_oddspark(browser)
 
-        # 投票ページを開く
-        # vote_id = ""  # TODO
-        # open_vote_page(browser, vote_id)
+    # 投票ページを開く
+    # vote_id = ""  # TODO
+    # open_vote_page(browser, vote_id)
 
-        # 投票ページ内容をスクレイピングする
-        # vote_page_info = scrape_vote_page_info(browser.page_source)
-        # logger.info(f"#vote: vote_page_info={vote_page_info}")
+    # 投票ページ内容をスクレイピングする
+    # vote_page_info = scrape_vote_page_info(browser.page_source)
+    # logger.info(f"#vote: vote_page_info={vote_page_info}")
 
-        # 予測順位を取得する
-        # pred_result = predict_result(race_id, vote_page_info["denma_list"])
-        # logger.info(f"#vote: pred result={pred_result}")
+    # 予測順位を取得する
+    # pred_result = predict_result(race_id, vote_page_info["denma_list"])
+    # logger.info(f"#vote: pred result={pred_result}")
 
-        # 投資パラメータを取得し、投資サイズを決定する
-        # target_denma = vote_page_info["denma_list"][pred_result[0] - 1]
-        # logger.info(f"#vote: target denma={target_denma}")
+    # 投資パラメータを取得し、投資サイズを決定する
+    # target_denma = vote_page_info["denma_list"][pred_result[0] - 1]
+    # logger.info(f"#vote: target denma={target_denma}")
 
-        # if target_denma["odds_win"] is None:
-        #    raise RuntimeError("odds_win is None")
+    # if target_denma["odds_win"] is None:
+    #    raise RuntimeError("odds_win is None")
 
-        # invest_parameter = get_invest_parameter()
-        # logger.info(f"#vote: invest_parameter={invest_parameter}")
+    # invest_parameter = get_invest_parameter()
+    # logger.info(f"#vote: invest_parameter={invest_parameter}")
 
-        # vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
-        # logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
+    # vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
+    # logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
 
-        # 投票する
-        # if vote_cost > 0:
-        #    execute_vote(browser, pred_result[0], vote_cost)
-        #    logger.info("#vote: voted")
-        # else:
-        #    logger.warning("vote abstain: cost == 0")
+    # 投票する
+    # if vote_cost > 0:
+    #    execute_vote(browser, pred_result[0], vote_cost)
+    #    logger.info("#vote: voted")
+    # else:
+    #    logger.warning("vote abstain: cost == 0")
 
-        # 投票データを記録する
-        # vote_result = {
-        #    "race_id": race_id,
-        #    "vote_id": vote_id,
-        #    "vote_page_info": vote_page_info,
-        #    "invest_parameter": invest_parameter,
-        #    "vote_horse_number": pred_result[0],
-        #    "vote_cost": vote_cost
-        # }
+    # 投票データを記録する
+    # vote_result = {
+    #    "race_id": race_id,
+    #    "vote_id": vote_id,
+    #    "vote_page_info": vote_page_info,
+    #    "invest_parameter": invest_parameter,
+    #    "vote_horse_number": pred_result[0],
+    #    "vote_cost": vote_cost
+    # }
 
-        # store_vote_data(vote_result)
+    # store_vote_data(vote_result)
 
-        # return vote_result
+    # return vote_result
 
-    finally:
-        browser.close()
-        browser.quit()
+    # finally:
+    #     browser.close()
+    #     browser.quit()
 
 
 def vote_close(race_id):

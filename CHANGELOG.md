@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+- [#8364: 予測結果の記録と投票結果の記録を分ける](https://redmine.u6k.me/issues/8364)
+
 ## [1.2.1] - 2020-05-05
 ### Fixed
 - [#8347: 実際に投票する](https://redmine.u6k.me/issues/8347)

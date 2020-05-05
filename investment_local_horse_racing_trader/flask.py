@@ -119,30 +119,45 @@ def vote_close():
         return "error", 500
 
 
-@app.route("/api/deposit", methods=["POST"])
-def deposit():
-    logger.info("#deposit: start")
+@app.route("/api/asset")
+def get_asset():
+    logger.info("#get_asset: start")
+
+    try:
+        last_asset = selenium.get_last_asset()
+
+        return {"asset": last_asset}
+
+    except Exception:
+        logger.exception("error")
+        return "error", 500
+
+
+@app.route("/api/asset/reset", methods=["POST"])
+def reset_asset():
+    logger.info("#reset_asset: start")
 
     try:
         args = request.get_json()
-        logger.debug(f"#deposit: args={args}")
+        logger.debug(f"#reset_asset: args={args}")
 
-        deposit_asset = args.get("asset")
+        asset = args.get("asset")
 
         predict_result = {
-            "race_id": "deposit",
+            "race_id": "reset",
             "horse_number": 0,
             "odds_win": 0,
-            "vote_cost": 0,
-            "parameters": "deposit"
+            "vote_cost": selenium.get_last_asset(),
+            "parameters": "reset"
         }
-        vote_record_id = selenium.store_vote_data(predict_result)
+        vote_record_id = selenium.store_predict_data(predict_result)
+        selenium.store_vote_data(vote_record_id, predict_result["vote_cost"])
 
-        selenium.store_vote_result(vote_record_id, 0, 0, deposit_asset)
+        selenium.store_vote_result(vote_record_id, 0, 0, asset)
 
         last_asset = selenium.get_last_asset()
 
-        return {"last_asset": last_asset}
+        return {"asset": last_asset}
 
     except Exception:
         logger.exception("error")

@@ -48,22 +48,27 @@ def login_oddspark(browser):
 
     browser.get("https://www.oddspark.com/keiba/")
     browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "login")
     browser.find_element(By.NAME, "SSO_ACCOUNTID").click()
     browser.find_element(By.NAME, "SSO_ACCOUNTID").send_keys(user_id)
     browser.find_element(By.NAME, "SSO_PASSWORD").click()
     browser.find_element(By.NAME, "SSO_PASSWORD").send_keys(password)
-    browser_screenshot(browser, "login")
+    browser_screenshot(browser, "login_input")
     browser.find_element(By.CSS_SELECTOR, "form > a").click()
     logger.debug("#login_oddspark: input login")
 
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "pin")
     browser.find_element(By.NAME, "INPUT_PIN").click()
     browser.find_element(By.NAME, "INPUT_PIN").send_keys(pin)
-    browser_screenshot(browser, "pin")
+    browser_screenshot(browser, "pin_input")
     browser.find_element(By.NAME, "送信").click()
     logger.debug("#login_oddspark: input pin")
 
-    browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+    browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "top")
+    browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+    browser_screenshot(browser, "top_close_modal")
     logger.debug("#login_oddspark: close modal")
 
 
@@ -81,7 +86,7 @@ def is_logined_oddspark(browser):
     else:
         result = True
 
-    logger.debug("#is_logined_oddspark: result={result}")
+    logger.debug(f"#is_logined_oddspark: result={result}")
     return result
 
 
@@ -91,7 +96,7 @@ def vote(race_id, vote_cost_limit, dry_run=True):
     # 予測する
     last_asset = get_last_asset()
     predict_result = predict(race_id, last_asset, vote_cost_limit)
-    store_vote_data(predict_result)
+    vote_record_id = store_predict_data(predict_result)
 
     if predict_result["vote_cost"] > 0 and not dry_run:
         browser = open_browser()
@@ -106,6 +111,7 @@ def vote(race_id, vote_cost_limit, dry_run=True):
 
             # 投票する
             execute_vote(browser, predict_result["horse_number"], predict_result["vote_cost"])
+            store_vote_data(vote_record_id, predict_result["vote_cost"])
 
         finally:
             browser.close()
@@ -229,6 +235,8 @@ def predict(race_id, asset, vote_cost_limit):
 def execute_vote(browser, horse_number, vote_cost):
     logger.info(f"#execute_vote: start: horse_number={horse_number}, vote_cost={vote_cost}")
 
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "vote_opened")
     browser.find_element(By.CSS_SELECTOR, f".n{horse_number}").click()
     browser.find_element(By.ID, "textfield11").click()
     browser.find_element(By.ID, "textfield11").clear()
@@ -238,22 +246,18 @@ def execute_vote(browser, horse_number, vote_cost):
     browser.find_element(By.ID, "gotobuy").click()
     logger.debug("#execute_vote: input vote")
 
-    time.sleep(5)
-
     browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "vote_confirm")
     browser.find_element(By.ID, "buy").click()
     logger.debug("#execute_vote: confirm vote")
-
-    time.sleep(5)
 
     browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "vote_complete")
     logger.debug("#execute_vote: complete vote")
 
 
-def store_vote_data(predict_result):
-    logger.info(f"#store_vote_data: start: predict_result={predict_result}")
+def store_predict_data(predict_result):
+    logger.info(f"#store_predict_data: start: predict_result={predict_result}")
 
     db_conn = flask.get_db()
     db_cursor = db_conn.cursor()
@@ -264,13 +268,27 @@ def store_vote_data(predict_result):
         vote_record_id = str(uuid4())
         bet_type = "win"
 
-        db_cursor.execute("insert into vote_record(vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, predict_result["race_id"], bet_type, predict_result["horse_number"], predict_result["odds_win"], predict_result["vote_cost"], predict_result["parameters"].__str__(), create_timestamp))
+        db_cursor.execute("insert into vote_record(vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, predict_result["race_id"], bet_type, predict_result["horse_number"], predict_result["odds_win"], 0, predict_result["parameters"].__str__(), create_timestamp))
 
         db_conn.commit()
 
-        logger.info(f"#store_vote_data: vote_record_id={vote_record_id}")
+        logger.info(f"#store_predict_data: vote_record_id={vote_record_id}")
 
         return vote_record_id
+
+    finally:
+        db_cursor.close()
+
+
+def store_vote_data(vote_record_id, vote_cost):
+    logger.info(f"#store_vote_data: start: vote_record_id={vote_record_id}, vote_cost={vote_cost}")
+
+    db_conn = flask.get_db()
+    db_cursor = db_conn.cursor()
+    try:
+
+        db_cursor.execute("update vote_record set vote_cost=%s where vote_record_id=%s", (vote_cost, vote_record_id))
+        db_conn.commit()
 
     finally:
         db_cursor.close()
@@ -378,5 +396,7 @@ def browser_screenshot(browser, name):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/var/screenshot/{timestamp}.{name}.png"
+
+    time.sleep(3)
 
     browser.save_screenshot(filename)

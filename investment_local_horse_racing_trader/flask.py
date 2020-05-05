@@ -136,7 +136,8 @@ def deposit():
             "vote_cost": 0,
             "parameters": "deposit"
         }
-        vote_record_id = selenium.store_vote_data(predict_result)
+        vote_record_id = selenium.store_predict_data(predict_result)
+        selenium.store_vote_data(vote_record_id, 0)
 
         selenium.store_vote_result(vote_record_id, 0, 0, deposit_asset)
 

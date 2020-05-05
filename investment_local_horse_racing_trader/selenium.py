@@ -48,22 +48,27 @@ def login_oddspark(browser):
 
     browser.get("https://www.oddspark.com/keiba/")
     browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "login")
     browser.find_element(By.NAME, "SSO_ACCOUNTID").click()
     browser.find_element(By.NAME, "SSO_ACCOUNTID").send_keys(user_id)
     browser.find_element(By.NAME, "SSO_PASSWORD").click()
     browser.find_element(By.NAME, "SSO_PASSWORD").send_keys(password)
-    browser_screenshot(browser, "login")
+    browser_screenshot(browser, "login_input")
     browser.find_element(By.CSS_SELECTOR, "form > a").click()
     logger.debug("#login_oddspark: input login")
 
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "pin")
     browser.find_element(By.NAME, "INPUT_PIN").click()
     browser.find_element(By.NAME, "INPUT_PIN").send_keys(pin)
-    browser_screenshot(browser, "pin")
+    browser_screenshot(browser, "pin_input")
     browser.find_element(By.NAME, "送信").click()
     logger.debug("#login_oddspark: input pin")
 
-    browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+    browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "top")
+    browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+    browser_screenshot(browser, "top_close_modal")
     logger.debug("#login_oddspark: close modal")
 
 
@@ -230,6 +235,8 @@ def predict(race_id, asset, vote_cost_limit):
 def execute_vote(browser, horse_number, vote_cost):
     logger.info(f"#execute_vote: start: horse_number={horse_number}, vote_cost={vote_cost}")
 
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "vote_opened")
     browser.find_element(By.CSS_SELECTOR, f".n{horse_number}").click()
     browser.find_element(By.ID, "textfield11").click()
     browser.find_element(By.ID, "textfield11").clear()
@@ -239,14 +246,10 @@ def execute_vote(browser, horse_number, vote_cost):
     browser.find_element(By.ID, "gotobuy").click()
     logger.debug("#execute_vote: input vote")
 
-    time.sleep(5)
-
     browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "vote_confirm")
     browser.find_element(By.ID, "buy").click()
     logger.debug("#execute_vote: confirm vote")
-
-    time.sleep(5)
 
     browser.find_element(By.CSS_SELECTOR, "body")
     browser_screenshot(browser, "vote_complete")
@@ -393,5 +396,7 @@ def browser_screenshot(browser, name):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/var/screenshot/{timestamp}.{name}.png"
+
+    time.sleep(3)
 
     browser.save_screenshot(filename)

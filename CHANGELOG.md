@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [#8364: 予測結果の記録と投票結果の記録を分ける](https://redmine.u6k.me/issues/8364)
 - [#8362: ブラウザ操作で、ページを開いた時とページ遷移直前でスクリーンショットを取得する](https://redmine.u6k.me/issues/8362)
+- [#8359: 最終資金を取得する](https://redmine.u6k.me/issues/8359)
 
 ## [1.2.1] - 2020-05-05
 ### Fixed

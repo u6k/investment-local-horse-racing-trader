@@ -85,16 +85,13 @@ def is_logined_oddspark(browser):
     return result
 
 
-def vote(race_id, dry_run=True):
-    logger.info(f"#vote: start: race_id={race_id}")
+def vote(race_id, vote_cost_limit, dry_run=True):
+    logger.info(f"#vote: start: race_id={race_id}, vote_cost_limit={vote_cost_limit}, dry_run={dry_run}")
 
     # 予測する
     last_asset = get_last_asset()
-    predict_result = predict(race_id, last_asset)
+    predict_result = predict(race_id, last_asset, vote_cost_limit)
     store_vote_data(predict_result)
-
-    if predict_result["vote_cost"] > 0:
-        predict_result["vote_cost"] = 100  # TODO
 
     if predict_result["vote_cost"] > 0 and not dry_run:
         browser = open_browser()
@@ -208,8 +205,8 @@ def scrape_vote_page_info(vote_page_html):
     return vote_page_info
 
 
-def predict(race_id, asset):
-    logger.info(f"#predict: start: race_id={race_id}, asset={asset}")
+def predict(race_id, asset, vote_cost_limit):
+    logger.info(f"#predict: start: race_id={race_id}, asset={asset}, vote_cost_limit={vote_cost_limit}")
 
     url = os.getenv("API_PREDICT_URL")
     headers = {
@@ -219,6 +216,7 @@ def predict(race_id, asset):
     params = json.dumps({
         "race_id": race_id,
         "asset": asset,
+        "vote_cost_limit": vote_cost_limit,
     })
     logger.debug(f"#predict: url={url}, params={params}")
 

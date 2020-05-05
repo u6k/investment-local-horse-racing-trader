@@ -87,9 +87,10 @@ def vote():
         logger.debug(f"#vote: args={args}")
 
         race_id = args.get("race_id", None)
+        vote_cost_limit = args.get("vote_cost_limit", 10000)
         dry_run = args.get("dry_run", True)
 
-        vote_result = selenium.vote(race_id, dry_run)
+        vote_result = selenium.vote(race_id, vote_cost_limit, dry_run)
 
         return vote_result
 

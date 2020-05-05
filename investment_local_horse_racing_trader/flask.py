@@ -87,10 +87,11 @@ def vote():
         logger.debug(f"#vote: args={args}")
 
         race_id = args.get("race_id", None)
+        dry_run = args.get("dry_run", True)
 
-        selenium.vote(race_id)
+        vote_result = selenium.vote(race_id, dry_run)
 
-        return "ok"
+        return vote_result
 
     except Exception:
         logger.exception("error")
@@ -98,6 +99,7 @@ def vote():
 
 
 @app.route("/api/vote_close", methods=["POST"])
+@multiple_control(singleQueue)
 def vote_close():
     logger.info("#vote_close: start")
 
@@ -107,9 +109,9 @@ def vote_close():
 
         race_id = args.get("race_id", None)
 
-        selenium.vote_close(race_id)
+        close_result = selenium.vote_close(race_id)
 
-        return "ok"
+        return close_result
 
     except Exception:
         logger.exception("error")

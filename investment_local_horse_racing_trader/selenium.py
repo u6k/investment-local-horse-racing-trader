@@ -9,6 +9,8 @@ from requests.auth import HTTPBasicAuth
 from uuid import uuid4
 from datetime import datetime
 import json
+import urllib.parse
+import time
 
 
 from investment_local_horse_racing_trader.app_logging import get_logger
@@ -19,6 +21,8 @@ logger = get_logger(__name__)
 
 
 def open_browser():
+    logger.info("#open_browser: start")
+
     options = Options()
     options.add_argument("--disable-extensions")
     options.add_argument("--start-maximized")
@@ -30,10 +34,14 @@ def open_browser():
     )
     browser.implicitly_wait(10)
 
+    logger.debug("#open_browser: opened")
+
     return browser
 
 
 def login_oddspark(browser):
+    logger.info("#login_oddspark: start")
+
     user_id = os.getenv("ODDSPARK_USER_ID")
     password = os.getenv("ODDSPARK_PASSWORD")
     pin = os.getenv("ODDSPARK_PIN")
@@ -44,28 +52,40 @@ def login_oddspark(browser):
     browser.find_element(By.NAME, "SSO_ACCOUNTID").send_keys(user_id)
     browser.find_element(By.NAME, "SSO_PASSWORD").click()
     browser.find_element(By.NAME, "SSO_PASSWORD").send_keys(password)
+    browser_screenshot(browser, "login")
     browser.find_element(By.CSS_SELECTOR, "form > a").click()
+    logger.debug("#login_oddspark: input login")
 
     browser.find_element(By.NAME, "INPUT_PIN").click()
     browser.find_element(By.NAME, "INPUT_PIN").send_keys(pin)
+    browser_screenshot(browser, "pin")
     browser.find_element(By.NAME, "送信").click()
+    logger.debug("#login_oddspark: input pin")
 
     browser.find_element(By.CSS_SELECTOR, ".modalCloseImg").click()
+    browser_screenshot(browser, "top")
+    logger.debug("#login_oddspark: close modal")
 
 
 def is_logined_oddspark(browser):
+    logger.info("#is_logined_oddspark: start")
+
     browser.get("https://www.oddspark.com/user/my/Index.do")
     browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "mypage")
 
     title = browser.title
 
     if title.startswith("ログイン"):
-        return False
+        result = False
     else:
-        return True
+        result = True
+
+    logger.debug("#is_logined_oddspark: result={result}")
+    return result
 
 
-def vote(race_id):
+def vote(race_id, dry_run=True):
     logger.info(f"#vote: start: race_id={race_id}")
 
     # 予測する
@@ -73,61 +93,31 @@ def vote(race_id):
     predict_result = predict(race_id, last_asset)
     store_vote_data(predict_result)
 
-    # browser = open_browser()
-    # try:
-    # ログイン
-    # if not is_logined_oddspark(browser):
-    #    login_oddspark(browser)
+    if predict_result["vote_cost"] > 0:
+        predict_result["vote_cost"] = 100  # TODO
 
-    # 投票ページを開く
-    # vote_id = ""  # TODO
-    # open_vote_page(browser, vote_id)
+    if predict_result["vote_cost"] > 0 and not dry_run:
+        browser = open_browser()
+        try:
+            # ログイン
+            if not is_logined_oddspark(browser):
+                login_oddspark(browser)
 
-    # 投票ページ内容をスクレイピングする
-    # vote_page_info = scrape_vote_page_info(browser.page_source)
-    # logger.info(f"#vote: vote_page_info={vote_page_info}")
+            # 投票ページを開く
+            vote_id = build_vote_id(race_id)
+            open_vote_page(browser, vote_id)
 
-    # 予測順位を取得する
-    # pred_result = predict_result(race_id, vote_page_info["denma_list"])
-    # logger.info(f"#vote: pred result={pred_result}")
+            # 投票する
+            execute_vote(browser, predict_result["horse_number"], predict_result["vote_cost"])
 
-    # 投資パラメータを取得し、投資サイズを決定する
-    # target_denma = vote_page_info["denma_list"][pred_result[0] - 1]
-    # logger.info(f"#vote: target denma={target_denma}")
+        finally:
+            browser.close()
+            browser.quit()
+    else:
+        logger.debug("#vote: cancel: vote_cost is 0")
 
-    # if target_denma["odds_win"] is None:
-    #    raise RuntimeError("odds_win is None")
-
-    # invest_parameter = get_invest_parameter()
-    # logger.info(f"#vote: invest_parameter={invest_parameter}")
-
-    # vote_cost = calc_vote_cost(vote_page_info["asset"], target_denma["odds_win"], invest_parameter)
-    # logger.info(f"#vote: asset={vote_page_info['asset']}, vote_cost={vote_cost}")
-
-    # 投票する
-    # if vote_cost > 0:
-    #    execute_vote(browser, pred_result[0], vote_cost)
-    #    logger.info("#vote: voted")
-    # else:
-    #    logger.warning("vote abstain: cost == 0")
-
-    # 投票データを記録する
-    # vote_result = {
-    #    "race_id": race_id,
-    #    "vote_id": vote_id,
-    #    "vote_page_info": vote_page_info,
-    #    "invest_parameter": invest_parameter,
-    #    "vote_horse_number": pred_result[0],
-    #    "vote_cost": vote_cost
-    # }
-
-    # store_vote_data(vote_result)
-
-    # return vote_result
-
-    # finally:
-    #     browser.close()
-    #     browser.quit()
+    logger.debug(f"#vote: predict_result={predict_result}")
+    return predict_result
 
 
 def vote_close(race_id):
@@ -140,9 +130,16 @@ def vote_close(race_id):
     else:
         vote_return = 0
 
-    store_vote_result(vote_record["vote_record_id"], race_result["result"], race_result["result_odds"], vote_return)
+    close_result = {
+        "vote_record_id": vote_record["vote_record_id"],
+        "result": race_result["result"],
+        "result_odds": race_result["result_odds"],
+        "vote_return": vote_return,
+    }
 
-    return vote_return
+    store_vote_result(close_result["vote_record_id"], close_result["result"], close_result["result_odds"], close_result["vote_return"])
+
+    return close_result
 
 
 def open_vote_page(browser, vote_id):
@@ -150,15 +147,12 @@ def open_vote_page(browser, vote_id):
 
     browser.get(f"https://www.oddspark.com/keiba/auth/VoteKeibaTop.do?{vote_id}")
     browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "vote")
 
     logger.debug(f"#open_vote_page: title={browser.title}")
     if not browser.title.startswith("投票"):
         logger.warning(f"#open_vote_page: Service is not available")
         raise RuntimeError("Service is not available")
-
-
-def open_vote_page_dummy(browser, vote_id):
-    pass
 
 
 def scrape_vote_page_info(vote_page_html):
@@ -214,11 +208,6 @@ def scrape_vote_page_info(vote_page_html):
     return vote_page_info
 
 
-def scrape_vote_page_info_dummy(vote_page_html):
-    with open("vote_page.html") as f:
-        return scrape_vote_page_info(f.read())
-
-
 def predict(race_id, asset):
     logger.info(f"#predict: start: race_id={race_id}, asset={asset}")
 
@@ -240,15 +229,29 @@ def predict(race_id, asset):
 
 
 def execute_vote(browser, horse_number, vote_cost):
-    logger.info(f"#execute_vote: horse_number={horse_number}, vote_cost={vote_cost}")
+    logger.info(f"#execute_vote: start: horse_number={horse_number}, vote_cost={vote_cost}")
 
     browser.find_element(By.CSS_SELECTOR, f".n{horse_number}").click()
     browser.find_element(By.ID, "textfield11").click()
     browser.find_element(By.ID, "textfield11").clear()
-    browser.find_element(By.ID, "textfield11").send_keys(vote_cost / 100)
+    browser.find_element(By.ID, "textfield11").send_keys(str(int(vote_cost / 100)))
     browser.find_element(By.ID, "set").click()
+    browser_screenshot(browser, "vote_input")
+    browser.find_element(By.ID, "gotobuy").click()
+    logger.debug("#execute_vote: input vote")
 
-    browser.save_screenshot("vote.png")
+    time.sleep(5)
+
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "vote_confirm")
+    browser.find_element(By.ID, "buy").click()
+    logger.debug("#execute_vote: confirm vote")
+
+    time.sleep(5)
+
+    browser.find_element(By.CSS_SELECTOR, "body")
+    browser_screenshot(browser, "vote_complete")
+    logger.debug("#execute_vote: complete vote")
 
 
 def store_vote_data(predict_result):
@@ -266,6 +269,8 @@ def store_vote_data(predict_result):
         db_cursor.execute("insert into vote_record(vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost, vote_parameter, create_timestamp) values (%s, %s, %s, %s, %s, %s, %s, %s)", (vote_record_id, predict_result["race_id"], bet_type, predict_result["horse_number"], predict_result["odds_win"], predict_result["vote_cost"], predict_result["parameters"].__str__(), create_timestamp))
 
         db_conn.commit()
+
+        logger.info(f"#store_vote_data: vote_record_id={vote_record_id}")
 
         return vote_record_id
 
@@ -302,9 +307,11 @@ def find_vote_record(race_id):
 
         db_cursor.execute("select vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost from vote_record where race_id = %s", (race_id,))
         (vote_record_id, race_id, bet_type, horse_number_1, odds, vote_cost) = db_cursor.fetchone()
-        logger.debug(f"#find_vote_record: vote_record_id={vote_record_id}, race_id={race_id}, bet_type={bet_type}, horse_number={horse_number_1}, odds={odds}, vote_cost={vote_cost}")
 
-        return {"vote_record_id": vote_record_id, "race_id": race_id, "bet_type": bet_type, "horse_number": horse_number_1, "odds": odds, "vote_cost": vote_cost}
+        vote_record = {"vote_record_id": vote_record_id, "race_id": race_id, "bet_type": bet_type, "horse_number": horse_number_1, "odds": odds, "vote_cost": vote_cost}
+        logger.debug(f"#find_vote_record: vote_record={vote_record}")
+
+        return vote_record
 
     finally:
         db_cursor.close()
@@ -330,7 +337,10 @@ def find_race_result(race_id, horse_number):
 
         (result, odds_win) = db_cursor.fetchone()
 
-        return {"result": result, "result_odds": odds_win}
+        race_result = {"result": result, "result_odds": odds_win}
+        logger.debug(f"#find_race_result: race_result={race_result}")
+
+        return race_result
 
     finally:
         db_cursor.close()
@@ -349,5 +359,26 @@ def store_vote_result(vote_record_id, result, result_odds, vote_return):
 
         db_conn.commit()
 
+        logger.info(f"#store_vote_result: updated")
+
     finally:
         db_cursor.close()
+
+
+def build_vote_id(race_id):
+    logger.info(f"#build_vote_id: start: race_id={race_id}")
+
+    d = urllib.parse.parse_qs(race_id)
+    vote_id = f"kaisaiBi={d['raceDy'][0]}&joCode={d['opTrackCd'][0]}&raceNo={d['raceNb'][0]}"
+    logger.debug(f"#build_vote_id: vote_id={vote_id}")
+
+    return vote_id
+
+
+def browser_screenshot(browser, name):
+    logger.info(f"#browser_screenshot: start")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"/var/screenshot/{timestamp}.{name}.png"
+
+    browser.save_screenshot(filename)

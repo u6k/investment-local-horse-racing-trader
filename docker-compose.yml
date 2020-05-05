@@ -5,6 +5,7 @@ services:
     build: .
     volumes:
       - ".:/var/myapp"
+      - "./screenshot:/var/screenshot"
     environment:
       - "TZ=Asia/Tokyo"
       - "ODDSPARK_USER_ID=${ODDSPARK_USER_ID}"
@@ -24,7 +25,7 @@ services:
       - "API_PREDICT_AUTH_USER=${API_PREDICT_AUTH_USER}"
       - "API_PREDICT_AUTH_PASSWORD=${API_PREDICT_AUTH_PASSWORD}"
     ports:
-      - 5000:5000
+      - 15000:5000
     depends_on:
       - "selenium-hub"
       - "db"

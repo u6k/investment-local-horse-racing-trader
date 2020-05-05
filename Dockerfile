@@ -11,6 +11,7 @@ COPY Pipfile .
 COPY Pipfile.lock .
 RUN pipenv install
 
+VOLUME /var/screenshot
 VOLUME /var/myapp
 ENV FLASK_APP investment_local_horse_racing_trader/flask.py
 EXPOSE 5000

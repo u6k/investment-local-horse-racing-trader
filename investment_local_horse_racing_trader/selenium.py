@@ -154,7 +154,7 @@ def open_vote_page(browser, vote_id):
 
     logger.debug(f"#open_vote_page: title={browser.title}")
     if not browser.title.startswith("投票"):
-        logger.warning(f"#open_vote_page: Service is not available")
+        logger.warning("#open_vote_page: Service is not available")
         raise RuntimeError("Service is not available")
 
 
@@ -375,7 +375,7 @@ def store_vote_result(vote_record_id, result, result_odds, vote_return):
 
         db_conn.commit()
 
-        logger.info(f"#store_vote_result: updated")
+        logger.info("#store_vote_result: updated")
 
     finally:
         db_cursor.close()
@@ -392,7 +392,7 @@ def build_vote_id(race_id):
 
 
 def browser_screenshot(browser, name):
-    logger.info(f"#browser_screenshot: start")
+    logger.info("#browser_screenshot: start")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/var/screenshot/{timestamp}.{name}.png"
